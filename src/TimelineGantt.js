@@ -2,6 +2,7 @@ import React, { useState, Component } from "react";
 import moment from "moment";
 import { css } from "emotion";
 import { Row, Col, Icon, Checkbox, Pagination } from "antd";
+import { useDrag, useDrop } from "react-dnd";
 
 import Timeline, {
   TimelineHeaders,
@@ -9,7 +10,10 @@ import Timeline, {
   DateHeader,
   TimelineMarkers,
   TodayMarker,
-  CustomMarker
+  CustomMarker,
+  RowItems,
+  GroupRow,
+  HelpersContext
 } from "./react-calendar-timeline-modify";
 
 import { itemsMock, groupsMock } from "./data";
@@ -55,9 +59,54 @@ class TimelineGantt extends Component {
 
     this.state = {
       items: itemsMock,
-      groups: groupsMock
+      groups: groupsMock,
+      itemsToDrag: [
+        {
+          title: "print",
+          id: "0a",
+          startTime: moment()
+            .startOf("day")
+            .add(2, "h"),
+          endTime: moment()
+            .startOf("day")
+            .add(4, "h")
+        },
+        {
+          title: "test",
+          id: "1b",
+          startTime: moment()
+            .startOf("day")
+            .add(2, "h"),
+          endTime: moment()
+            .startOf("day")
+            .add(4, "h")
+        }
+      ]
     };
   }
+
+  handleDrop = group => item => {
+    const fullItem = this.state.itemsToDrag.find(i => i.id === item.id);
+    this.setState(
+      state => ({
+        items: [
+          ...state.items,
+          {
+            title: fullItem.title,
+            id: item.id,
+            group: group.id,
+            start_time: item.startTime.valueOf(),
+            end_time: item.endTime.valueOf(),
+            color: "blue",
+            bgColor: "lightred"
+          }
+        ]
+      }),
+      () => {
+        console.log("Do some request ...");
+      }
+    );
+  };
 
   handleItemMove = (itemId, dragTime, newGroupId) => {
     const { items } = this.state;
@@ -78,6 +127,29 @@ class TimelineGantt extends Component {
     const { items, groups } = this.state;
     return (
       <div data-testid="timeline-gantt">
+        <div style={{ display: "flex", marginBottom: 10 }}>
+          {this.state.itemsToDrag.map(dragItem => {
+            return (
+              <Draggable
+                key={dragItem.id}
+                id={dragItem.id}
+                itemDetails={{ ...dragItem }}
+                style={{
+                  height: "100%",
+                  width: 100,
+                  background: "white",
+                  marginLeft: 15,
+                  border: "1px solid black",
+                  padding: 5
+                }}
+                onDragEnd={item => console.log("dragEnd", item)}
+                onDragStart={item => console.log("dragStart", item)}
+              >
+                {dragItem.title}
+              </Draggable>
+            );
+          })}
+        </div>
         <Row
           className={css`
             background-color: white;
@@ -107,6 +179,27 @@ class TimelineGantt extends Component {
           defaultTimeEnd={defaultTimeEnd}
           itemRenderer={itemRenderer}
           groupRenderer={groupRenderer}
+          rowRenderer={props => {
+            const { rowData, getLayerRootProps, group } = props;
+            const helpers = React.useContext(HelpersContext);
+            const { itemsToDrag } = rowData;
+            return (
+              <GroupRow>
+                <RowItems />
+                <DroppablesLayer
+                  getLayerRootProps={getLayerRootProps}
+                  itemsToDrag={itemsToDrag}
+                  getLeftOffsetFromDate={helpers.getLeftOffsetFromDate}
+                  handleDrop={this.handleDrop}
+                  group={group}
+                  helpers={helpers}
+                />
+              </GroupRow>
+            );
+          }}
+          rowData={{
+            itemsToDrag: this.state.itemsToDrag
+          }}
           minZoom={60 * 60 * 1000}
           maxZoom={8.64e7}
           onItemMove={this.handleItemMove}
@@ -208,6 +301,107 @@ class TimelineGantt extends Component {
 }
 
 export default TimelineGantt;
+
+function Droppable({ children, itemIdAccepts, style, onDrop, ...rest }) {
+  const [collected, droppableRef] = useDrop({
+    drop: (item, monitor) => {
+      console.log(monitor, ";;;dropmonitor");
+      onDrop(item);
+    },
+    accept: itemIdAccepts,
+    collect: monitor => ({
+      canDrop: monitor.canDrop()
+    }),
+    hover: (item, monitor) => {
+      console.log(monitor, ";;;hoveritem");
+    }
+  });
+  const isVisable = collected.canDrop;
+  return (
+    <div
+      style={{
+        ...style,
+        display: isVisable ? "initial" : "none"
+      }}
+      ref={droppableRef}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Draggable({
+  id,
+  children,
+  onDragStart,
+  onDragEnd,
+  itemDetails,
+  ...rest
+}) {
+  const [collectedProps, dragRef] = useDrag({
+    item: { id, type: id, ...itemDetails },
+    begin: monitor => {
+      onDragStart(id);
+    },
+    end: (item, monitor) => {
+      console.log(monitor);
+      onDragEnd(item);
+    }
+  });
+  return (
+    <div {...rest} ref={dragRef}>
+      {children}
+    </div>
+  );
+}
+function DroppablesLayer({
+  getLayerRootProps,
+  itemsToDrag,
+  getLeftOffsetFromDate,
+  handleDrop,
+  group,
+  helpers
+}) {
+  // we need get date when drag over some period of time
+  return (
+    <div {...getLayerRootProps()}>
+      {itemsToDrag.map((item, index) => {
+        const leftTimeBoundary = getLeftOffsetFromDate(
+          moment()
+            .startOf("day")
+            .subtract(1, "week")
+            .valueOf()
+        );
+        const rightTimeBoundary = getLeftOffsetFromDate(
+          moment()
+            .startOf("day")
+            .add(1, "week")
+            .valueOf()
+        );
+        // console.log(helpers.getItemDimensions)
+        // console.log(helpers);
+        return (
+          <Droppable
+            key={index}
+            style={{
+              position: "absolute",
+              left: leftTimeBoundary,
+              width: rightTimeBoundary - leftTimeBoundary,
+              backgroundColor: "purple",
+              height: "100%"
+              // zIndex: 999999
+            }}
+            itemIdAccepts={item.id}
+            onDrop={handleDrop(group)}
+          >
+            {item.title}
+          </Droppable>
+        );
+      })}
+    </div>
+  );
+}
 
 function groupRenderer({ group }) {
   return (
