@@ -6,7 +6,15 @@
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.4.0",
     "@testing-library/user-event": "^7.2.1",
+    "antd": "^3.26.4",
+    "emotion": "^10.0.27",
+    "interactjs": "^1.7.3",
+    "moment": "^2.24.0",
     "react": "^16.12.0",
+    "react-app-rewire-styled-components": "^3.0.2",
+    "react-calendar-timeline": "beta",
+    "react-dnd": "^10.0.2",
+    "react-dnd-html5-backend": "^10.0.2",
     "react-dom": "^16.12.0",
     "react-scripts": "3.3.0"
   },
@@ -30,5 +38,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "react-app-rewire-mobx": "^1.0.9",
+    "react-app-rewired": "^1.6.2"
   }
 }
