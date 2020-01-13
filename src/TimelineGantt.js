@@ -85,7 +85,7 @@ class TimelineGantt extends Component {
     };
   }
 
-  handleDrop = group => item => {
+  handleDrop = group => (item, ...rest) => {
     const fullItem = this.state.itemsToDrag.find(i => i.id === item.id);
     this.setState(
       state => ({
@@ -133,6 +133,7 @@ class TimelineGantt extends Component {
               <Draggable
                 key={dragItem.id}
                 id={dragItem.id}
+                className="task-item-test"
                 itemDetails={{ ...dragItem }}
                 style={{
                   height: "100%",
@@ -180,11 +181,16 @@ class TimelineGantt extends Component {
           itemRenderer={itemRenderer}
           groupRenderer={groupRenderer}
           rowRenderer={props => {
-            const { rowData, getLayerRootProps, group } = props;
+            const { rowData, getLayerRootProps, group, scrollRef } = props;
             const helpers = React.useContext(HelpersContext);
             const { itemsToDrag } = rowData;
             return (
-              <GroupRow>
+              <GroupRow
+                scrollRef={scrollRef}
+                onItemDragOverFromOutside={timeFor => e => {
+                  timeFor(e);
+                }}
+              >
                 <RowItems />
                 <DroppablesLayer
                   getLayerRootProps={getLayerRootProps}
@@ -203,6 +209,7 @@ class TimelineGantt extends Component {
           minZoom={60 * 60 * 1000}
           maxZoom={8.64e7}
           onItemMove={this.handleItemMove}
+          onDragItemFromOutside={() => {}}
         >
           <TimelineHeaders>
             <SidebarHeader
@@ -305,16 +312,13 @@ export default TimelineGantt;
 function Droppable({ children, itemIdAccepts, style, onDrop, ...rest }) {
   const [collected, droppableRef] = useDrop({
     drop: (item, monitor) => {
-      console.log(monitor, ";;;dropmonitor");
-      onDrop(item);
+      console.log(monitor.getInitialClientOffset(), ";;;dropmonitor");
+      // onDrop(item);
     },
     accept: itemIdAccepts,
     collect: monitor => ({
       canDrop: monitor.canDrop()
-    }),
-    hover: (item, monitor) => {
-      console.log(monitor, ";;;hoveritem");
-    }
+    })
   });
   const isVisable = collected.canDrop;
   return (
