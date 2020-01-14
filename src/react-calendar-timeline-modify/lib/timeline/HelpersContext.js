@@ -1,27 +1,27 @@
-import React, { PureComponent } from 'react'
-import PropTypes from 'prop-types'
-import { _get } from '../utility/generic'
-import { TimelineStateConsumer } from '../timeline/TimelineStateContext'
-import memoize from 'memoize-one'
+import React, { PureComponent } from "react";
+import PropTypes from "prop-types";
+import { _get } from "../utility/generic";
+import { TimelineStateConsumer } from "../timeline/TimelineStateContext";
+import memoize from "memoize-one";
 
 const defaultContextState = {
   getLeftOffsetFromDate: () => {
-    console.warn('"getLeftOffsetFromDate" default func is being used')
+    console.warn('"getLeftOffsetFromDate" default func is being used');
   },
   getDateFromLeftOffsetPosition: () => {
-    console.warn('"getDateFromLeftOffsetPosition" default func is being used')
+    console.warn('"getDateFromLeftOffsetPosition" default func is being used');
   },
   getItemAbsoluteDimensions: () => {
-    console.warn('"getItemAbsoluteDimensions" default func is being used')
+    console.warn('"getItemAbsoluteDimensions" default func is being used');
   },
   getItemDimensions: () => {
-    console.warn('"getItemDimensions" default func is being used')
+    console.warn('"getItemDimensions" default func is being used');
   }
-}
+};
 
-const HelpersContext = React.createContext(defaultContextState)
+const HelpersContext = React.createContext(defaultContextState);
 
-const { Consumer, Provider } = HelpersContext
+const { Consumer, Provider } = HelpersContext;
 
 class HelpersContextProviderCore extends PureComponent {
   static propTypes = {
@@ -32,71 +32,69 @@ class HelpersContextProviderCore extends PureComponent {
     keys: PropTypes.object.isRequired,
     groupHeights: PropTypes.array.isRequired,
     groupTops: PropTypes.array.isRequired
-  }
+  };
 
   getGroupByItemId = itemId => {
-    const { items, keys } = this.props
-    const item = items.find(i => _get(i, keys.itemIdKey) === itemId)
-    const groupId = _get(item, keys.itemGroupKey)
-    return groupId
-  }
+    const { items, keys } = this.props;
+    const item = items.find(i => _get(i, keys.itemIdKey) === itemId);
+    const groupId = _get(item, keys.itemGroupKey);
+    return groupId;
+  };
 
   /**
    * create new instance of getItemDimensions of dependant props have changed (similar to useCallback)
    */
   getItemDimensionsCreator = memoize(
     (groupsWithItemsDimensions, getGroupByItemId) => itemId => {
-      const groupId = getGroupByItemId(itemId)
-      const group = groupsWithItemsDimensions[groupId]
-      const itemDimensions = group.itemDimensions.find(i => i.id === itemId)
-      if (itemDimensions) return itemDimensions.dimensions
-      else return undefined
+      const groupId = getGroupByItemId(itemId);
+      const group = groupsWithItemsDimensions[groupId];
+      const itemDimensions = group.itemDimensions.find(i => i.id === itemId);
+      if (itemDimensions) return itemDimensions.dimensions;
+      else return undefined;
     }
-  )
+  );
 
   /**
    * create new instance of getItemAbsoluteDimensions of dependant props have changed (similar to useCallback)
    */
   getItemAbsoluteDimensionsCreator = memoize(
     (groupHeights, groupsWithItemsDimensions, getGroupByItemId) => itemId => {
-      const groupId = getGroupByItemId(itemId)
-      const group = groupsWithItemsDimensions[groupId]
-      const itemDimensions = group.itemDimensions.find(i => i.id === itemId)
-      if (!itemDimensions) return
-      const groupIndex = group.index
+      const groupId = getGroupByItemId(itemId);
+      const group = groupsWithItemsDimensions[groupId];
+      const itemDimensions = group.itemDimensions.find(i => i.id === itemId);
+      if (!itemDimensions) return;
+      const groupIndex = group.index;
       const groupTop = groupHeights.reduce((acc, height, index) => {
-        if (index < groupIndex) return acc + height
-        else return acc
-      }, 0)
+        if (index < groupIndex) return acc + height;
+        else return acc;
+      }, 0);
       return {
         left: itemDimensions.dimensions.left,
         top: groupTop + itemDimensions.dimensions.top,
         width: itemDimensions.dimensions.width
-      }
+      };
     }
-  )
+  );
 
   /**
    * create new instance of getGroupDimensionsCreator of dependant props have changed (similar to useCallback)
    */
-  getGroupDimensionsCreator = memoize((
-    groupsWithItemsDimensions,
-    groupHeights,
-    groupTops
-  ) => groupId => {
-    const group = groupsWithItemsDimensions[groupId]
-    if (!group) return
-    const index = group.index
-    const height = groupHeights[index]
-    const top = groupTops[index]
-    return {
-      height,
-      top
+  getGroupDimensionsCreator = memoize(
+    (groupsWithItemsDimensions, groupHeights, groupTops) => groupId => {
+      const group = groupsWithItemsDimensions[groupId];
+      if (!group) return;
+      const index = group.index;
+      const height = groupHeights[index];
+      const top = groupTops[index];
+      return {
+        height,
+        top
+      };
     }
-  })
+  );
 
   render() {
-    const { children } = this.props
+    const { children } = this.props;
     return (
       <Provider
         value={{
@@ -116,12 +114,13 @@ class HelpersContextProviderCore extends PureComponent {
             this.props.groupsWithItemsDimensions,
             this.props.groupHeights,
             this.props.groupTops
-          )
+          ),
+          getTimeFromDropping: this.props.getTimeFromDropping
         }}
       >
         {children}
       </Provider>
-    )
+    );
   }
 }
 
@@ -129,19 +128,25 @@ export class HelpersContextProvider extends PureComponent {
   render() {
     return (
       <TimelineStateConsumer>
-        {({ getLeftOffsetFromDate, getDateFromLeftOffsetPosition }) => {
+        {props => {
+          const {
+            getLeftOffsetFromDate,
+            getDateFromLeftOffsetPosition,
+            getTimeFromDropping
+          } = props;
           return (
             <HelpersContextProviderCore
               getLeftOffsetFromDate={getLeftOffsetFromDate}
               getDateFromLeftOffsetPosition={getDateFromLeftOffsetPosition}
+              getTimeFromDropping={getTimeFromDropping}
               {...this.props}
             />
-          )
+          );
         }}
       </TimelineStateConsumer>
-    )
+    );
   }
 }
 
-export const HelpersConsumer = Consumer
-export default HelpersContext
+export const HelpersConsumer = Consumer;
+export default HelpersContext;

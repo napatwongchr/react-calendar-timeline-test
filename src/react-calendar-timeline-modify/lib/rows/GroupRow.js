@@ -1,12 +1,9 @@
 import React, { Component, PureComponent } from "react";
-import moment from "moment";
 import PropTypes from "prop-types";
 import PreventClickOnDrag from "../interaction/PreventClickOnDrag";
 import interact from "interactjs";
 import { _get } from "../utility/generic";
 import { GroupRowConsumer } from "./GroupRowContext";
-import { coordinateToTimeRatio } from "../utility/calendar";
-import { getSumScroll, getSumOffset } from "../utility/dom-helpers";
 import { TimelineStateConsumer } from "../timeline/TimelineStateContext";
 
 class GroupRow extends Component {
@@ -28,25 +25,8 @@ class GroupRow extends Component {
   componentDidMount() {
     interact(this.ref.current).dropzone({
       accept: ".rct-item",
-      overlap: "pointer",
-      ondrop: e => {
-        console.log(e, ";;;ondrop");
-      }
+      overlap: "pointer"
     });
-  }
-
-  timeFor(e) {
-    const ratio = coordinateToTimeRatio(
-      this.props.canvasTimeStart,
-      this.props.canvasTimeEnd,
-      this.props.canvasWidth
-    );
-    const offset = getSumOffset(this.props.scrollRef).offsetLeft;
-    const scrolls = getSumScroll(this.props.scrollRef);
-    return (
-      (e.pageX - offset + scrolls.scrollLeft) * ratio +
-      this.props.canvasTimeStart
-    );
   }
 
   render() {
@@ -74,13 +54,6 @@ class GroupRow extends Component {
           ref={this.ref}
           onContextMenu={onContextMenu}
           onDoubleClick={onDoubleClick}
-          onDragOver={e => {
-            console.log(this.timeFor(e), ";timeForE");
-            // console.log(e.pageX, ";;;test");
-          }}
-          // onDragEnd={e => {
-          //   console.log(this.timeFor(e), ";timeDrop");
-          // }}
           className={
             "rct-hl " +
             (isEvenRow ? "rct-hl-even " : "rct-hl-odd ") +
@@ -113,17 +86,20 @@ class GroupRowWrapper extends PureComponent {
           } = getTimelineState();
           return (
             <GroupRowConsumer>
-              {props => (
-                <GroupRow
-                  scrollRef={this.props.scrollRef}
-                  canvasTimeStart={canvasTimeStart}
-                  canvasTimeEnd={canvasTimeEnd}
-                  canvasWidth={canvasWidth}
-                  keys={keys}
-                  {...props}
-                  children={this.props.children}
-                />
-              )}
+              {props => {
+                const { scrollRef } = props;
+                return (
+                  <GroupRow
+                    scrollRef={scrollRef}
+                    canvasTimeStart={canvasTimeStart}
+                    canvasTimeEnd={canvasTimeEnd}
+                    canvasWidth={canvasWidth}
+                    keys={keys}
+                    {...props}
+                    children={this.props.children}
+                  />
+                );
+              }}
             </GroupRowConsumer>
           );
         }}

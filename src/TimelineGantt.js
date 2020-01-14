@@ -69,7 +69,9 @@ class TimelineGantt extends Component {
             .add(2, "h"),
           endTime: moment()
             .startOf("day")
-            .add(4, "h")
+            .add(4, "h"),
+          duration: 1,
+          durationUnit: "h"
         },
         {
           title: "test",
@@ -79,14 +81,20 @@ class TimelineGantt extends Component {
             .add(2, "h"),
           endTime: moment()
             .startOf("day")
-            .add(4, "h")
+            .add(4, "h"),
+          duration: 2,
+          durationUnit: "h"
         }
       ]
     };
   }
 
-  handleDrop = group => (item, ...rest) => {
+  handleDrop = group => (item, dropTime, ...rest) => {
     const fullItem = this.state.itemsToDrag.find(i => i.id === item.id);
+    let start_time = moment(dropTime).valueOf();
+    let end_time = moment(dropTime)
+      .add(item.duration, item.durationUnit)
+      .valueOf();
     this.setState(
       state => ({
         items: [
@@ -95,8 +103,8 @@ class TimelineGantt extends Component {
             title: fullItem.title,
             id: item.id,
             group: group.id,
-            start_time: item.startTime.valueOf(),
-            end_time: item.endTime.valueOf(),
+            start_time,
+            end_time,
             color: "blue",
             bgColor: "lightred"
           }
@@ -165,12 +173,12 @@ class TimelineGantt extends Component {
           Gantt
         </Row>
         <Timeline
-          // keys={keys}
           groups={groups}
           items={items}
           fullUpdate
           itemTouchSendsClick={false}
           stackItems
+          canResize={false}
           itemHeightRatio={0.75}
           canMove={true}
           canResize={"both"}
@@ -181,24 +189,22 @@ class TimelineGantt extends Component {
           itemRenderer={itemRenderer}
           groupRenderer={groupRenderer}
           rowRenderer={props => {
-            const { rowData, getLayerRootProps, group, scrollRef } = props;
+            const { rowData, getLayerRootProps, group } = props;
             const helpers = React.useContext(HelpersContext);
             const { itemsToDrag } = rowData;
             return (
-              <GroupRow
-                scrollRef={scrollRef}
-                onItemDragOverFromOutside={timeFor => e => {
-                  timeFor(e);
-                }}
-              >
+              <GroupRow>
                 <RowItems />
                 <DroppablesLayer
                   getLayerRootProps={getLayerRootProps}
                   itemsToDrag={itemsToDrag}
                   getLeftOffsetFromDate={helpers.getLeftOffsetFromDate}
+                  getTimeFromDropping={helpers.getTimeFromDropping}
+                  getDateFromLeftOffsetPosition={
+                    helpers.getDateFromLeftOffsetPosition
+                  }
                   handleDrop={this.handleDrop}
                   group={group}
-                  helpers={helpers}
                 />
               </GroupRow>
             );
@@ -209,7 +215,7 @@ class TimelineGantt extends Component {
           minZoom={60 * 60 * 1000}
           maxZoom={8.64e7}
           onItemMove={this.handleItemMove}
-          onDragItemFromOutside={() => {}}
+          onDragItemFromOutside={this.handleDragItemFromOutside}
         >
           <TimelineHeaders>
             <SidebarHeader
@@ -309,11 +315,19 @@ class TimelineGantt extends Component {
 
 export default TimelineGantt;
 
-function Droppable({ children, itemIdAccepts, style, onDrop, ...rest }) {
+function Droppable({
+  children,
+  itemIdAccepts,
+  style,
+  onDrop,
+  getDateFromLeftOffsetPosition,
+  getTimeFromDropping,
+  ...rest
+}) {
   const [collected, droppableRef] = useDrop({
     drop: (item, monitor) => {
-      console.log(monitor.getInitialClientOffset(), ";;;dropmonitor");
-      // onDrop(item);
+      let dropTime = getTimeFromDropping(monitor.getClientOffset().x);
+      onDrop(item, dropTime);
     },
     accept: itemIdAccepts,
     collect: monitor => ({
@@ -344,14 +358,7 @@ function Draggable({
   ...rest
 }) {
   const [collectedProps, dragRef] = useDrag({
-    item: { id, type: id, ...itemDetails },
-    begin: monitor => {
-      onDragStart(id);
-    },
-    end: (item, monitor) => {
-      console.log(monitor);
-      onDragEnd(item);
-    }
+    item: { id, type: id, ...itemDetails }
   });
   return (
     <div {...rest} ref={dragRef}>
@@ -361,48 +368,26 @@ function Draggable({
 }
 function DroppablesLayer({
   getLayerRootProps,
-  itemsToDrag,
-  getLeftOffsetFromDate,
   handleDrop,
   group,
-  helpers
+  getDateFromLeftOffsetPosition,
+  getTimeFromDropping
 }) {
-  // we need get date when drag over some period of time
   return (
     <div {...getLayerRootProps()}>
-      {itemsToDrag.map((item, index) => {
-        const leftTimeBoundary = getLeftOffsetFromDate(
-          moment()
-            .startOf("day")
-            .subtract(1, "week")
-            .valueOf()
-        );
-        const rightTimeBoundary = getLeftOffsetFromDate(
-          moment()
-            .startOf("day")
-            .add(1, "week")
-            .valueOf()
-        );
-        // console.log(helpers.getItemDimensions)
-        // console.log(helpers);
-        return (
-          <Droppable
-            key={index}
-            style={{
-              position: "absolute",
-              left: leftTimeBoundary,
-              width: rightTimeBoundary - leftTimeBoundary,
-              backgroundColor: "purple",
-              height: "100%"
-              // zIndex: 999999
-            }}
-            itemIdAccepts={item.id}
-            onDrop={handleDrop(group)}
-          >
-            {item.title}
-          </Droppable>
-        );
-      })}
+      <Droppable
+        style={{
+          position: "absolute",
+          backgroundColor: "purple",
+          width: "100%",
+          height: "100%",
+          zIndex: 999999
+        }}
+        itemIdAccepts={["0a", "1b"]} // Have to accept all tasks id
+        onDrop={handleDrop(group)}
+        getTimeFromDropping={getTimeFromDropping}
+        getDateFromLeftOffsetPosition={getDateFromLeftOffsetPosition}
+      />
     </div>
   );
 }

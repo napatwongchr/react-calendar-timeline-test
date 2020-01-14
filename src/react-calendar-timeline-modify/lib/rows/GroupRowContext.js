@@ -26,7 +26,8 @@ export class GroupRowContextProvider extends PureComponent {
     group: PropTypes.object.isRequired,
     horizontalLineClassNamesForGroup: PropTypes.func,
     groupHeight: PropTypes.number.isRequired,
-    groupIndex: PropTypes.number.isRequired
+    groupIndex: PropTypes.number.isRequired,
+    scrollRef: PropTypes.object
   };
   handleContextMenu = e => {
     this.props.onContextMenu(e, this.props.groupIndex);

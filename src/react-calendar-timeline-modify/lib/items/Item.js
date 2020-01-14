@@ -231,7 +231,6 @@ export default class Item extends Component {
         if (this.props.dragging) {
           if (e.dropzone) {
             const newGroupId = e.dropzone.target.dataset.groupid;
-            console.log(e, ";;;e test");
             let dragTime = this.dragTime(e);
             if (
               dragTime !==
@@ -253,7 +252,6 @@ export default class Item extends Component {
         }
       })
       .on("dragend", e => {
-        console.log(e, ";;;dee");
         e.stopPropagation();
         if (this.props.dragging) {
           if (e.dropzone) {

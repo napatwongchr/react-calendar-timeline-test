@@ -200,6 +200,7 @@ class Group extends React.PureComponent {
         horizontalLineClassNamesForGroup={horizontalLineClassNamesForGroup}
         groupHeight={groupHeight}
         groupIndex={index}
+        scrollRef={scrollRef}
       >
         <ItemsContextProvider
           items={group.items}

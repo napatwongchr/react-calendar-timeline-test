@@ -931,6 +931,7 @@ export default class ReactCalendarTimeline extends Component {
         showPeriod={this.showPeriod}
         timelineUnit={minUnit}
         timelineWidth={this.state.width}
+        scrollRef={this.scrollComponent}
         keys={keys}
       >
         <TimelineMarkersProvider>
